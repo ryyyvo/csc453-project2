@@ -1,0 +1,19 @@
+1. why do we need both next() and remove()
+
+2. why do we need to change out schedulers? 
+
+3. use mmap or malloc for queueing 
+
+4. thread number limit ? 
+
+5. perror or fprintf for errors 
+
+6. error handling for if thread is in queue or not 
+
+7. are we allowed to modify the makefile
+
+8. how do we use remove() if it conflicts with stdio.h 
+
+9. what version of c are we allowed to compile with?
+
+10. do we have to define the variables as pointers in the struct?
