@@ -15,8 +15,8 @@
 
 
 /*struct scheduler RR = {init, shutdown, *admit, *removeR, *next, *qlen};
- * scheduler curr_scheduler = &RR;
- */
+scheduler curr_scheduler = &RR;
+*/
 
 unsigned long *queue;
 int first=-1; /*ind of first proc*/
@@ -114,4 +114,5 @@ void main(int argc, char* argv[]){
 	return;
 }
 
-
+struct scheduler RR = {init, shutdown, *admit, *removeR, *next, *qlen};
+/*scheduler curr_scheduler = &RR;*/
