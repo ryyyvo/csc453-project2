@@ -13,6 +13,7 @@ int tid_counter = 1;
 int stack_size;
 struct rlimit rl_struct;
 struct scheduler RS = RR;
+thread current_thread = NULL; // keep track of current thread
 
 
 int get_stack_size(){
@@ -60,6 +61,54 @@ tid_t lwp_create(lwpfun function, void *argument){
 
 	/*munmap(stack_pointer)*/	
 	return new_thread->tid; 
+}
+
+void lwp_start(void) {
+	thread main_thread = (thread) malloc(sizeof(struct threadinfo_st));
+	if (main_thread == NULL) {
+		perror("malloc");
+		exit(1);
+	}
+	/* more to do!! */
+	tid_counter++;
+	main_thread->tid = tid_counter;
+	main_thread->stack = NULL;
+	lwp_yield();
+}
+
+void lwp_yield(void) {
+
+}
+
+void lwp_exit(int exitval);
+
+tid_t lwp_wait(int *status) {
+	if (&RS == NULL) { // is & right ?
+		return NO_THREAD;
+	}
+	// ...
+}
+
+tid_t lwp_gettid(void) {
+	if (current_thread == NULL) {
+		return NO_THREAD;
+	}
+	return current_thread->tid;
+}
+
+thread tid2thread(tid_t tid) {
+	// returns the thread correspodning to the given thread ID , or NULL if ID is invalid
+	
+	// while loop to find the thread with the given tid
+	// if found return the thread
+	// else return NULL
+	return NULL;
+}
+
+void lwp_set_scheduler(scheduler sched);
+
+scheduler lwp_get_scheduler(void) {
+	return &RS; // is & right ? 
 }
 
 void main(int argc, char* argv){
