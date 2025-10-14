@@ -37,6 +37,12 @@ int get_stack_size()
 	return stack_size;
 }
 
+static void* lwp_wrap(lwpfun fun, void *arg){
+	int rval;
+	rval=fun(arg);
+	lwp_exit(rval);
+}
+
 tid_t lwp_create(lwpfun function, void *argument)
 {
 	stack_size = get_stack_size();
@@ -44,23 +50,53 @@ tid_t lwp_create(lwpfun function, void *argument)
 	new_thread->tid = tid_counter;
 	tid_counter++;
 
-	int *args = (int *)argument;
-	new_thread->state.rdi = args[0];
-	new_thread->state.rsi = args[1];
-	new_thread->state.rdx = args[2];
-	new_thread->state.rcx = args[3];
-	new_thread->state.r8 = args[4];
-	new_thread->state.r9 = args[5];
+	
+	new_thread->state.rdi = (unsigned long)function;
+	new_thread->state.rsi = (unsigned long)argument;
+	
 	new_thread->state.fxsave = FPU_INIT;
 	new_thread->stacksize = stack_size;
 
 	void *stack_pointer = mmap(NULL, stack_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-	new_thread->stack = (unsigned long *)((char *)stack_pointer + stack_size);
-	/*new_thread->state.rsp = new_thread->stack;*/
-	/* check if addresses are divisible by 16 */
+	
+	unsigned long base_add = (unsigned long)(char *)(stack_pointer + stack_size-1);
+	/*check if dividible by 16*/
+	if(base_add % 16 != 0)
+	{
+		base_add -= base_add % 16;
+	}
+
+	new_thread->stack = (unsigned long*)base_add;
+	
+	unsigned long* base_add_pointer = (unsigned long*) base_add; 
+	
+	/*push on return address??*/
+	*(base_add_pointer) = new_thread->state.rbp;
+	base_add_pointer--;
+
+	*(base_add_pointer) = (unsigned long)lwp_wrap;
+	base_add_pointer --;
+
+	new_thread->state.rsp = (unsigned long)(base_add_pointer);
+	new_thread->state.rbp = base_add;
+
+
+/*
+ * stack looks like:
+ *
+ * lwp_wrap
+ * old rbp
+ * return address
+ * base of stack(TOS)
+ *
+ *
+ *
+ * */ 
+	
 	admit(new_thread);
 
-	/*munmap(stack_pointer)*/
+	
+	/*munmap(stack_pointer), prob in exit*/
 	return new_thread->tid;
 }
 
@@ -78,6 +114,9 @@ void lwp_start(void)
 	tid_counter++;
 	lwp_yield();
 }
+
+
+
 
 void lwp_yield(void)
 {
