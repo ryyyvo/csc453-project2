@@ -42,7 +42,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "lwp.h"
+#include "lw.h"
 #include "schedulers.h"
 
 #define MAXSNAKES  100
@@ -54,24 +54,25 @@ int main(int argc, char *argv[]){
 
   printf("Launching LWPS\n");
 
+  get_stack_size();
   /* spawn a number of individual LWPs */
   for(i=1;i<=5;i++) {
     lwp_create((lwpfun)indentnum,(void*)i);
   }
 
-  lwp_start();
-
+  /*lwp_start();
+*/
   /* wait for the other LWPs */
   for(i=1;i<=5;i++) {
     int status,num;
     tid_t t;
-    t = lwp_wait(&status);
+    /*t = lwp_wait(&status);*/
     num = LWPTERMSTAT(status);
     printf("Thread %ld exited with status %d\n",t,num);
   }
 
   printf("Back from LWPS.\n");
-  lwp_exit(0);
+  /*lwp_exit(0);*/
   return 0;
 }
 
@@ -85,9 +86,9 @@ static void indentnum(void *num) {
   howfar=(long)num;              /* interpret num as an integer */
   for(i=0;i<howfar;i++){
     printf("%*d\n",howfar*5,howfar);
-    lwp_yield();                /* let another have a turn */
+    /*lwp_yield();*/                /* let another have a turn */
   }
-  lwp_exit(i);                  /* bail when done.  This should
+  /*lwp_exit(i);*/                  /* bail when done.  This should
                                  * be unnecessary if the stack has
                                  * been properly prepared
                                  */

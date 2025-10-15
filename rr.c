@@ -8,7 +8,7 @@
 #include <sys/time.h>
 #include <math.h>
 
-#include "./include/lwp.h"
+#include "lwp.h"
 
 #define MAX_PROCESSES 500
 #define MAX_ARGUMENTS 10
@@ -110,9 +110,6 @@ int qlen(){
     return threads_in_queue;
 }
 
-void main(int argc, char* argv[]){
-	return;
-}
 
-struct scheduler RR = {init, shutdown, *admit, *removeR, *next, *qlen};
+struct scheduler RR = {init, shutdown, admit, removeR, next, qlen};
 /*scheduler curr_scheduler = &RR;*/
