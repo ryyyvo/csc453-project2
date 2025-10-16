@@ -11,7 +11,7 @@
 
 
 #if defined(__x86_64)
-#include <fp.h>
+#include "fp.h"
 typedef struct __attribute__ ((aligned(16))) __attribute__ ((packed))
 registers {
   unsigned long rax;            /* the sixteen architecturally-visible regs. */
@@ -75,7 +75,7 @@ extern tid_t lwp_wait(int *);
 extern void  lwp_set_scheduler(scheduler fun);
 extern scheduler lwp_get_scheduler(void);
 extern thread tid2thread(tid_t tid);
-
+extern int get_stack_size();
 /* for lwp_wait */
 #define TERMOFFSET        8
 #define MKTERMSTAT(a,b)   ( (a)<<TERMOFFSET | ((b) & ((1<<TERMOFFSET)-1)) )

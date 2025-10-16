@@ -13,12 +13,43 @@
     linked list is prob easiest to just dynamically allocate one thread at a time 
     realloac when trying to add more threads and it's full 
 
-6. error handling for if thread is in queue or not 
+// 6. error handling for if thread is in queue or not 
 
-7. are we allowed to modify the makefile
+// 7. are we allowed to modify the makefile
 
-8. how do we use remove() if it conflicts with stdio.h 
+// 8. how do we use remove() if it conflicts with stdio.h 
 
-9. what version of c are we allowed to compile with?
+// 9. what version of c are we allowed to compile with?
 
-10. do we have to define the variables as pointers in the struct?
+// 10. do we have to define the variables as pointers in the struct?
+
+11. are there always gonna be 6 args, are we pushing them onto the stack or registers? null check? 
+    are we pushing the function pointer onto the stack?
+
+    answer: lwp_fun is a void function pointer, move onto rdi and rsi 
+    do not need error checking, 
+    do not need to call lwp_wrap at all,
+    rdi is the function and rsi is the argument,
+    none of the arguments end up on the stack,
+
+    rbp and rsp need to be set
+    push the address of the function onto the stack
+
+
+12. what do we push onto our stack?
+
+13. how to get access to calling thread for lwp_start()?
+
+    lwp_start: 
+    store the register values 
+    when you call call swap_rfiles, you are switching to the new thread ?? NOT SURE 
+    when you return from swap_rfiles, you are back to the old thread ?? NOT SURE
+
+14. can we have a global thread table in the scheduler?
+
+answer: no 
+
+15. divisible by 16?
+
+linked list: 
+put whole thread structure into linked list
