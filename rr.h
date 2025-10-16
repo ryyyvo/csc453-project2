@@ -1,5 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef RR_H
+#define RR_H
 #include "lwp.h"
 
 extern struct scheduler RR;
+
+#endif

@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <sys/resource.h>
 #include "rr.h"
-#include "ll_rr.h"
 
 int tid_counter = 1;
 int stack_size;
@@ -38,9 +37,10 @@ int get_stack_size()
 	return stack_size;
 }
 
-static void lwp_wrap(lwpfun fun, void *arg){
+static void lwp_wrap(lwpfun fun, void *arg)
+{
 	int rval;
-	rval=fun(arg);
+	rval = fun(arg);
 	lwp_exit(rval);
 }
 
@@ -51,52 +51,49 @@ tid_t lwp_create(lwpfun function, void *argument)
 	new_thread->tid = tid_counter;
 	tid_counter++;
 
-	
 	new_thread->state.rdi = (unsigned long)function;
 	new_thread->state.rsi = (unsigned long)argument;
-	
+
 	new_thread->state.fxsave = FPU_INIT;
 	new_thread->stacksize = stack_size;
 
 	void *stack_pointer = mmap(NULL, stack_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-	
-	unsigned long base_add = (unsigned long)(char *)(stack_pointer + stack_size/8);
+
+	unsigned long base_add = (unsigned long)(char *)(stack_pointer + stack_size / 8);
 	/*check if dividible by 16*/
-	if(base_add % 16 != 0)
+	if (base_add % 16 != 0)
 	{
 		base_add -= base_add % 16;
 	}
 
 	base_add--;
-	new_thread->stack = (unsigned long*)base_add;
-	
-	unsigned long* base_add_pointer = (unsigned long*) base_add; 
-	
-	
+	new_thread->stack = (unsigned long *)base_add;
+
+	unsigned long *base_add_pointer = (unsigned long *)base_add;
+
 	base_add_pointer--;
 
 	*(base_add_pointer) = (unsigned long)lwp_wrap;
-	base_add_pointer --;
+	base_add_pointer--;
 
 	new_thread->state.rsp = (unsigned long)(base_add_pointer);
 	new_thread->state.rbp = new_thread->state.rsp;
 
+	/*
+	 * stack looks like:
+	 *
+	 * lwp_wrap
+	 * old rbp
+	 * return address
+	 * base of stack(TOS)
+	 *
+	 *
+	 *
+	 * */
 
-/*
- * stack looks like:
- *
- * lwp_wrap
- * old rbp
- * return address
- * base of stack(TOS)
- *
- *
- *
- * */ 
-	
 	/*RS->admit(new_thread);
-*/
-	swap_rfiles(NULL, &new_thread->state);	
+	 */
+	swap_rfiles(NULL, &new_thread->state);
 	/*munmap(stack_pointer), prob in exit*/
 	return new_thread->tid;
 }
@@ -112,17 +109,16 @@ void lwp_start(void)
 	main_thread->tid = tid_counter;
 	main_thread->stack = NULL;
 	tid_counter++;
-	RS->admit(main_thread); // admit the thread to the scheduler 
+	RS->admit(main_thread); // admit the thread to the scheduler
 	current_thread = main_thread;
 	lwp_yield();
 }
-
 
 void lwp_yield(void)
 {
 }
 
-void lwp_exit(int exitval){
+void lwp_exit(int exitval) {
 };
 
 tid_t lwp_wait(int *status)
@@ -147,24 +143,28 @@ thread tid2thread(tid_t tid)
 {
 	// returns the thread corresponding to the given thread ID , or NULL if ID is invalid
 
-    if (!RS || RS->qlen() == 0) {
-        return NULL;
-    }
-    
-    thread t = RS->next();
-    thread start = t;
+	if (!RS || RS->qlen() == 0)
+	{
+		return NULL;
+	}
 
-    if (t->tid == tid) {
-        return t;
-    }
+	thread t = RS->next();
+	thread start = t;
 
-    t = RS->next();
-    while (t != start && t != NULL) {
-        if (t->tid == tid) {
-            return t;
-        }
-        t = RS->next();
-    }
+	if (t->tid == tid)
+	{
+		return t;
+	}
+
+	t = RS->next();
+	while (t != start && t != NULL)
+	{
+		if (t->tid == tid)
+		{
+			return t;
+		}
+		t = RS->next();
+	}
 	return NULL;
 }
 
@@ -174,5 +174,3 @@ scheduler lwp_get_scheduler(void)
 {
 	return &RS; // is & right ?
 }
-
-
