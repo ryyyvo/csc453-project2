@@ -10,106 +10,104 @@
 
 #include "lwp.h"
 
-#define MAX_PROCESSES 500
-#define MAX_ARGUMENTS 10
+thread head = NULL;
+thread curr = NULL;
 
+/* sched_one = next */
+/* sched_two = prev */
 
-/*struct scheduler RR = {init, shutdown, *admit, *removeR, *next, *qlen};
-scheduler curr_scheduler = &RR;
-*/
+void init(void);
 
-unsigned long *queue;
-int first=-1; /*ind of first proc*/
-int back=-1; /*ind of last proc*/
-int threads_in_queue = 0;
-
-thread *thread_table;
-
-void init(void){
-    queue = malloc(MAX_PROCESSES * sizeof(unsigned long));
-	thread_table = malloc(MAX_PROCESSES * sizeof(context));
-}
-
-void shutdown(void){
-    free(queue);
-}
-
-int isFull()
-{
-    return (back + 1) % MAX_PROCESSES == first;
-}
-
-int isEmpty(){
-    return first == -1;
-}
-
+void shutdown(void);
 
 void admit(thread new)
 {
-    /*unsigned long t_id = new.tid;
-	*/
-
-	unsigned long t_id = new->tid;
-    if(isFull()){
-        unsigned long *more_space = realloc(queue, 100*sizeof(unsigned long));
-		thread *new_table = realloc(queue, 100*sizeof(context));
-
-        if (more_space == NULL){
-            printf("realloc failed");
-            return;
+    thread temp = head;
+    if (!head)
+    {
+        head = new;
+        new->sched_one = NULL;
+        new->sched_two = NULL;
+    }
+    else
+    {
+        while (temp->sched_one)
+        {
+            temp = temp->sched_one;
         }
-        queue = more_space;
-
-		if(new_table == NULL){
-			printf("Realloc failed");
-			return;
-		}
-		thread_table = new_table;
+        temp->sched_one = new;
+        new->sched_two = temp;
+        new->sched_one = NULL;
     }
-
-    if(first == -1){
-        first = 0;
-    }
-
-    back = (back + 1) % MAX_PROCESSES;
-    queue[back] = t_id;
-	thread_table[t_id] = new;
-    threads_in_queue++;
 }
 
-void removeR(thread victim){
-    unsigned long t_id = victim->tid;
-    if (isEmpty()){
-        printf("queue empty");
-
+void remove(thread victim)
+{
+    if (!head || !victim)
+    {
+        return;
     }
 
-    if (first == back) {
-        first = back = -1;
+    if (curr == victim)
+    {
+        curr = victim->sched_one;
     }
-    else{
-        first = (first + 1) % MAX_PROCESSES;
+    if (head == victim)
+    {
+        head = head->sched_one;
+        if (head)
+        {
+            head->sched_two = NULL;
+        }
     }
-	free(thread_table[t_id]);
-    threads_in_queue--;
+    else
+    {
+        if (victim->sched_two)
+        {
+            victim->sched_two->sched_one = victim->sched_one;
+        }
+        if (victim->sched_one)
+        {
+            victim->sched_one->sched_two = victim->sched_two;
+        }
+    }
 }
 
-
-thread next(){
-    unsigned long t_id = queue[first];
-    
-    return thread_table[t_id];
+thread next(void)
+{
+    if (!head)
+    {
+        return NULL;
+    }
+    if (!curr)
+    {
+        curr = head;
+    }
+    else
+    {
+        curr = curr->sched_one;
+        if (!curr)
+        {
+            curr = head; // wrap around to beginning
+        }
+    }
+    return curr;
 }
 
-
-thread tid2thread_helper(tid_t tid){
-	return thread_table[tid];
+int qlen()
+{
+    int len = 0;
+    if (!head)
+    {
+        return 0;
+    }
+    thread temp = head;
+    while (temp)
+    {
+        len++;
+        temp = temp->sched_one;
+    }
+    return len;
 }
 
-int qlen(){
-    return threads_in_queue;
-}
-
-
-struct scheduler RR = {init, shutdown, admit, removeR, next, qlen};
-/*scheduler curr_scheduler = &RR;*/
+struct scheduler RR = {NULL, NULL, admit, remove, next, qlen};
