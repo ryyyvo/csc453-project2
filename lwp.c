@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/resource.h>
 #include "rr.h"
+#include "ll_rr.h"
 
 int tid_counter = 1;
 int stack_size;
@@ -103,19 +104,18 @@ tid_t lwp_create(lwpfun function, void *argument)
 void lwp_start(void)
 {
 	thread main_thread = (thread)malloc(sizeof(struct threadinfo_st));
-	if (main_thread == NULL)
+	if (!main_thread)
 	{
 		perror("malloc");
 		exit(1);
 	}
-	/* more to do!! */
 	main_thread->tid = tid_counter;
 	main_thread->stack = NULL;
 	tid_counter++;
+	RS->admit(main_thread); // admit the thread to the scheduler 
+	current_thread = main_thread;
 	lwp_yield();
 }
-
-
 
 
 void lwp_yield(void)
@@ -127,7 +127,7 @@ void lwp_exit(int exitval){
 
 tid_t lwp_wait(int *status)
 {
-	if (&RS == NULL)
+	if (!&RS)
 	{ // is & right ?
 		return NO_THREAD;
 	}
@@ -136,7 +136,7 @@ tid_t lwp_wait(int *status)
 
 tid_t lwp_gettid(void)
 {
-	if (current_thread == NULL)
+	if (!current_thread)
 	{
 		return NO_THREAD;
 	}
@@ -147,9 +147,24 @@ thread tid2thread(tid_t tid)
 {
 	// returns the thread corresponding to the given thread ID , or NULL if ID is invalid
 
-	// while loop to find the thread with the given tid
-	// if found return the thread
-	// else return NULL
+    if (!RS || RS->qlen() == 0) {
+        return NULL;
+    }
+    
+    thread t = RS->next();
+    thread start = t;
+
+    if (t->tid == tid) {
+        return t;
+    }
+
+    t = RS->next();
+    while (t != start && t != NULL) {
+        if (t->tid == tid) {
+            return t;
+        }
+        t = RS->next();
+    }
 	return NULL;
 }
 
