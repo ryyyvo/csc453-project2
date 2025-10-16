@@ -1,12 +1,17 @@
-// 1. why do we need both next() and remove()
+2. why do we need to change out schedulers? 
 
-// 2. why do we need to change out schedulers? 
+    yield and stop are used as "quantum", add thread back into queue 
+    thread runs as long as it wants to
 
-// 3. use mmap or malloc for queueing 
+3. use mmap or malloc for queueing 
 
-// 4. thread number limit ? 
+    linked list suggested over static array
+    use sched one and sched two to point in linked list 
 
-// 5. perror or fprintf for errors 
+4. thread number limit ? 
+
+    linked list is prob easiest to just dynamically allocate one thread at a time 
+    realloac when trying to add more threads and it's full 
 
 // 6. error handling for if thread is in queue or not 
 
