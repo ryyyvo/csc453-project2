@@ -14,6 +14,7 @@ int stack_size;
 struct rlimit rl_struct;
 scheduler RS = &RR;
 thread current_thread = NULL; // keep track of current thread
+thread all_threads_head = NULL;  // linked list of ALL threads (do we need??)
 
 int get_stack_size()
 {
@@ -118,29 +119,76 @@ void lwp_start(void)
 
 void lwp_yield(void)
 {
-	/*
- *	if next() exists:
- *		swaprfiles
- *	else:
- *		lwp_exit()
- *		exit(3)
- *
- *
- *
- *
- * */
+    thread next_thread = RS->next();
+
+    if (!next_thread) {
+        exit(3);
+    }
+    
+    if (next_thread == current_thread) {
+        return;
+    }
+    
+    // save current thread and switch to next
+    thread old_thread = current_thread;
+    current_thread = next_thread;
+
+    swap_rfiles(&old_thread->state, &next_thread->state);
 }
 
 void lwp_exit(int exitval) {
+    if (!current_thread) {
+        exit(exitval);
+    }
+
+    current_thread->status = MKTERMSTAT(LWP_TERM, exitval);
+
+    RS->remove(current_thread);
+    lwp_yield();
 };
 
-tid_t lwp_wait(int *status)
+tid_t lwp_wait(int *status) // def don't work yet
 {
-	if (!&RS)
-	{ // is & right ?
+    
+    if (RS->qlen() == 0) {
+        return NO_THREAD;
+    }
+    
+    thread terminated = NULL;
+    
+    while (!terminated) {
+        // may need to maintain a separate
+        // list of all threads (both running and terminated)
+        
+        if (RS->qlen() == 1 && current_thread) {
 		return NO_THREAD;
 	}
-	// ...
+        
+        lwp_yield();
+
+        // requires iterating through all threads, not just scheduled ones
+        // need a global thread list for this
+    }
+    
+    // once terminated thread is found. but err no global list yet ?
+    if (terminated) {
+        tid_t tid = terminated->tid;
+        
+        if (status) {
+            *status = terminated->status;
+        }
+        
+        if (terminated->stack != NULL) {
+            void *stack_base = (void *)((unsigned long)terminated->stack - terminated->stacksize + terminated->stacksize / 8);
+            munmap(stack_base, terminated->stacksize);
+        }
+        
+        free(terminated);
+        
+        return tid;
+    }
+    
+    return NO_THREAD;
 }
 
 tid_t lwp_gettid(void)
@@ -185,5 +233,5 @@ void lwp_set_scheduler(scheduler sched);
 
 scheduler lwp_get_scheduler(void)
 {
-	return &RS; // is & right ?
+	return RS;
 }
