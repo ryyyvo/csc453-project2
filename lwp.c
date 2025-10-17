@@ -59,6 +59,9 @@ tid_t lwp_create(lwpfun function, void *argument)
 
 	void *stack_pointer = mmap(NULL, stack_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
 
+	/* stack in context will point to top of stack to use for munmap */
+	new_thread->stack = (unsigned long *)(char *)stack_pointer;
+
 	unsigned long base_add = (unsigned long)(char *)(stack_pointer + stack_size / 8);
 	/*check if dividible by 16*/
 	if (base_add % 16 != 0)
@@ -67,7 +70,8 @@ tid_t lwp_create(lwpfun function, void *argument)
 	}
 
 	base_add--;
-	new_thread->stack = (unsigned long *)base_add;
+
+	/*new_thread->stack = (unsigned long *)base_add;*/
 
 	unsigned long *base_add_pointer = (unsigned long *)base_add;
 
@@ -86,9 +90,6 @@ tid_t lwp_create(lwpfun function, void *argument)
 	 * old rbp
 	 * return address
 	 * base of stack(TOS)
-	 *
-	 *
-	 *
 	 * */
 
 	RS->admit(new_thread);
@@ -96,7 +97,7 @@ tid_t lwp_create(lwpfun function, void *argument)
 	printf("Size of list %d\n", k); 
 
 	swap_rfiles(NULL, &new_thread->state);
-	/*munmap(stack_pointer), prob in exit*/
+
 	return new_thread->tid;
 }
 
@@ -118,20 +119,24 @@ void lwp_start(void)
 
 void lwp_yield(void)
 {
-	/*
- *	if next() exists:
- *		swaprfiles
- *	else:
- *		lwp_exit()
- *		exit(3)
- *
- *
- *
- *
- * */
+
+	thread old = current_thread;
+	current_thread = RS->next();
+
+	if(current_thread){
+		swap_rfiles(&old->state, &current_thread->state);
+	}
+
+	/* exit? */
 }
 
 void lwp_exit(int exitval) {
+	/* RS->remove() the current thread */
+	thread remove_thread = current_thread;
+	current_thread = NULL;
+
+	munmap(remove_thread->stack, stack_size);
+	RS->remove(remove_thread);
 };
 
 tid_t lwp_wait(int *status)
