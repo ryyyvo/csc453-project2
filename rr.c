@@ -41,7 +41,7 @@ void admit(thread new)
     }
 }
 
-void remove(thread victim)
+void removeR(thread victim)
 {
     if (!head || !victim)
     {
@@ -110,4 +110,4 @@ int qlen()
     return len;
 }
 
-struct scheduler RR = {NULL, NULL, admit, remove, next, qlen};
+struct scheduler RR = {NULL, NULL, admit, removeR, next, qlen};
