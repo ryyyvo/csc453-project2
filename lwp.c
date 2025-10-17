@@ -91,8 +91,10 @@ tid_t lwp_create(lwpfun function, void *argument)
 	 *
 	 * */
 
-	/*RS->admit(new_thread);
-	 */
+	RS->admit(new_thread);
+	int k = RS->qlen();
+	printf("Size of list %d\n", k); 
+
 	swap_rfiles(NULL, &new_thread->state);
 	/*munmap(stack_pointer), prob in exit*/
 	return new_thread->tid;
@@ -116,6 +118,17 @@ void lwp_start(void)
 
 void lwp_yield(void)
 {
+	/*
+ *	if next() exists:
+ *		swaprfiles
+ *	else:
+ *		lwp_exit()
+ *		exit(3)
+ *
+ *
+ *
+ *
+ * */
 }
 
 void lwp_exit(int exitval) {
