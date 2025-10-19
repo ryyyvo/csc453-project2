@@ -61,7 +61,7 @@ tid_t lwp_create(lwpfun function, void *argument)
 	void *stack_pointer = mmap(NULL, stack_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
 
 	unsigned long base_add = (unsigned long)(char *)(stack_pointer + stack_size / 8);
-	/*check if dividible by 16*/
+	
 	if (base_add % 16 != 0)
 	{
 		base_add -= base_add % 16;
@@ -80,24 +80,8 @@ tid_t lwp_create(lwpfun function, void *argument)
 	new_thread->state.rsp = (unsigned long)(base_add_pointer);
 	new_thread->state.rbp = new_thread->state.rsp;
 
-	/*
-	 * stack looks like:
-	 *
-	 * lwp_wrap
-	 * old rbp
-	 * return address
-	 * base of stack(TOS)
-	 *
-	 *
-	 *
-	 * */
-
 	RS->admit(new_thread);
-	int k = RS->qlen();
-	printf("Size of list %d\n", k); 
-
-	swap_rfiles(NULL, &new_thread->state);
-	/*munmap(stack_pointer), prob in exit*/
+	
 	return new_thread->tid;
 }
 
@@ -122,11 +106,13 @@ void lwp_yield(void)
     thread next_thread = RS->next();
 
     if (!next_thread) {
-        exit(3);
+    	printf("exiting in yield");
+	    exit(3);
     }
     
     if (next_thread == current_thread) {
-        return;
+    	printf("not exiting");
+	    return;
     }
     
     // save current thread and switch to next
@@ -144,6 +130,12 @@ void lwp_exit(int exitval) {
     current_thread->status = MKTERMSTAT(LWP_TERM, exitval);
 
     RS->remove(current_thread);
+ 
+	
+	void *stack_base = (void *)((unsigned long)current_thread->stack - current_thread->stacksize + current_thread->stacksize / 8);
+    munmap(stack_base, current_thread->stacksize);
+    free(current_thread);
+
     lwp_yield();
 };
 
@@ -157,7 +149,7 @@ tid_t lwp_wait(int *status) // def don't work yet
     thread terminated = NULL;
     
     while (!terminated) {
-        // may need to maintain a separate
+		  // may need to maintain a separate
         // list of all threads (both running and terminated)
         
         if (RS->qlen() == 1 && current_thread) {
@@ -170,9 +162,10 @@ tid_t lwp_wait(int *status) // def don't work yet
         // need a global thread list for this
     }
     
-    // once terminated thread is found. but err no global list yet ?
+    /*once terminated thread is found. but err no global list yet ?
     if (terminated) {
-        tid_t tid = terminated->tid;
+		printf("ok2"); 
+	   tid_t tid = terminated->tid;
         
         if (status) {
             *status = terminated->status;
@@ -186,8 +179,7 @@ tid_t lwp_wait(int *status) // def don't work yet
         free(terminated);
         
         return tid;
-    }
-    
+    }*/    
     return NO_THREAD;
 }
 
