@@ -50,7 +50,7 @@ void removeR(thread victim)
 
     if (curr == victim)
     {
-        curr = victim->sched_one;
+        curr = NULL;
     }
     if (head == victim)
     {
