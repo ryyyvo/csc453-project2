@@ -165,7 +165,7 @@ tid_t lwp_wait(int *status)
     while (!terminated) {
         thread t = all_threads_head;
         while (t) {
-            if (TERMSTAT(t->status) == LWP_TERM) {
+            if (t->status == LWP_TERM) {
                 terminated = t;
                 break;
             }
