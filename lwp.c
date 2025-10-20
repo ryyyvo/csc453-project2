@@ -250,7 +250,32 @@ thread tid2thread(tid_t tid)
 	return NULL;
 }
 
-void lwp_set_scheduler(scheduler sched);
+void lwp_set_scheduler(scheduler sched){
+    thread temp;
+    if(sched == NULL){
+        return;
+    }
+
+    if(sched->init){
+        sched->init();
+    }
+
+	temp = RS->next();
+    while(temp != NULL){
+        RS->remove(temp);
+        sched->admit(temp);
+    	temp = RS->next();
+	}
+    
+
+    if(RS->shutdown){
+        RS->shutdown();
+    }
+
+    RS = sched;
+
+    return;
+}
 
 scheduler lwp_get_scheduler(void)
 {
