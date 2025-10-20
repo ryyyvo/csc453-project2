@@ -106,13 +106,13 @@ void lwp_yield(void)
     thread next_thread = RS->next();
 
     if (!next_thread) {
-    	printf("exiting in yield");
-	    exit(3);
+    	/*printf("exiting in yield");*/
+		exit(3);
     }
     
     if (next_thread == current_thread) {
-    	printf("not exiting");
-	    return;
+    	/*printf("not exiting");*/
+		return;
     }
     
     // save current thread and switch to next
@@ -221,8 +221,34 @@ thread tid2thread(tid_t tid)
 	return NULL;
 }
 
-void lwp_set_scheduler(scheduler sched);
+void lwp_set_scheduler(scheduler sched){
+    thread temp;
+    /*scheduler old_sched = lwp_get_scheduler();
+    old_sched = RS;*/
+    if(sched == NULL){
+        return;
+    }
 
+    if(sched->init){
+        sched->init();
+    }
+
+	temp = RS->next();
+    while(temp != NULL){
+        RS->remove(temp);
+        sched->admit(temp);
+    	temp = RS->next();
+	}
+    
+
+    if(RS->shutdown){
+        RS->shutdown();
+    }
+
+    RS = sched;
+
+    return;
+}
 scheduler lwp_get_scheduler(void)
 {
 	return RS;
