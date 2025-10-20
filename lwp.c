@@ -14,7 +14,7 @@ int stack_size;
 struct rlimit rl_struct;
 scheduler RS = &RR;
 thread current_thread = NULL; // keep track of current thread
-thread all_threads_head = NULL;  // linked list of ALL threads (do we need??)
+thread all_threads_head = NULL;  // linked list of ALL threads
 
 int get_stack_size()
 {
@@ -111,7 +111,7 @@ void lwp_start(void)
     }
     all_threads_head = main_thread;
 
-	RS->admit(main_thread); // admit the thread to the scheduler
+	RS->admit(main_thread);
 	current_thread = main_thread;
 	lwp_yield();
 }
@@ -121,16 +121,24 @@ void lwp_yield(void)
     thread next_thread = RS->next();
 
     if (!next_thread) {
-    	printf("exiting in yield");
-	    exit(3);
+        while (all_threads_head) {
+            thread t = all_threads_head;
+            all_threads_head = all_threads_head->lib_one;
+            
+            if (t->stack != NULL) {
+                void *stack_base = (void *)((unsigned long)t->stack - t->stacksize / 8);
+                munmap(stack_base, t->stacksize);
+            }
+            free(t);
+        }
+        
+        exit(3);
     }
     
     if (next_thread == current_thread) {
-    	printf("not exiting");
-	    return;
+        return;
     }
     
-    // save current thread and switch to next
     thread old_thread = current_thread;
     current_thread = next_thread;
 
