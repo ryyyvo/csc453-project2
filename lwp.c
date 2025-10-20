@@ -145,11 +145,6 @@ void lwp_exit(int exitval) {
     current_thread->status = MKTERMSTAT(LWP_TERM, exitval);
 
     RS->remove(current_thread);
- 
-	
-	void *stack_base = (void *)((unsigned long)current_thread->stack - current_thread->stacksize + current_thread->stacksize / 8);
-    // munmap(stack_base, current_thread->stacksize);
-    // free(current_thread);
 
     lwp_yield();
 };
@@ -165,7 +160,7 @@ tid_t lwp_wait(int *status)
     while (!terminated) {
         thread t = all_threads_head;
         while (t) {
-            if (t->status == LWP_TERM) {
+            if (LWPTERMINATED(t->status)) {
                 terminated = t;
                 break;
             }
@@ -201,7 +196,7 @@ tid_t lwp_wait(int *status)
     }
     
     if (terminated->stack != NULL) {
-        void *stack_base = (void *)((unsigned long)terminated->stack - terminated->stacksize + terminated->stacksize / 8);
+        void *stack_base = (void *)((unsigned long)terminated->stack - terminated->stacksize / 8);
         munmap(stack_base, terminated->stacksize);
     }
     
@@ -221,7 +216,6 @@ tid_t lwp_gettid(void)
 
 thread tid2thread(tid_t tid)
 {
-	// returns the thread corresponding to the given thread ID , or NULL if ID is invalid
 
 	if (!RS || RS->qlen() == 0)
 	{
