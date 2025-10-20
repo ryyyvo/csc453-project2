@@ -80,6 +80,13 @@ tid_t lwp_create(lwpfun function, void *argument)
 	new_thread->state.rsp = (unsigned long)(base_add_pointer);
 	new_thread->state.rbp = new_thread->state.rsp;
 
+    new_thread->lib_one = all_threads_head;
+    new_thread->lib_two = NULL;
+    if (all_threads_head) {
+        all_threads_head->lib_two = new_thread;
+    }
+    all_threads_head = new_thread;
+
 	RS->admit(new_thread);
 	
 	return new_thread->tid;
@@ -96,6 +103,14 @@ void lwp_start(void)
 	main_thread->tid = tid_counter;
 	main_thread->stack = NULL;
 	tid_counter++;
+
+    main_thread->lib_one = all_threads_head;
+    main_thread->lib_two = NULL;
+    if (all_threads_head) {
+        all_threads_head->lib_two = main_thread;
+    }
+    all_threads_head = main_thread;
+
 	RS->admit(main_thread); // admit the thread to the scheduler
 	current_thread = main_thread;
 	lwp_yield();
@@ -133,15 +148,14 @@ void lwp_exit(int exitval) {
  
 	
 	void *stack_base = (void *)((unsigned long)current_thread->stack - current_thread->stacksize + current_thread->stacksize / 8);
-    munmap(stack_base, current_thread->stacksize);
-    free(current_thread);
+    // munmap(stack_base, current_thread->stacksize);
+    // free(current_thread);
 
     lwp_yield();
 };
 
-tid_t lwp_wait(int *status) // def don't work yet
+tid_t lwp_wait(int *status)
 {
-    
     if (RS->qlen() == 0) {
         return NO_THREAD;
     }
@@ -149,38 +163,51 @@ tid_t lwp_wait(int *status) // def don't work yet
     thread terminated = NULL;
     
     while (!terminated) {
-		  // may need to maintain a separate
-        // list of all threads (both running and terminated)
+        thread t = all_threads_head;
+        while (t) {
+            if (TERMSTAT(t->status) == LWP_TERM) {
+                terminated = t;
+                break;
+            }
+            t = t->lib_one;
+        }
+        
+        if (terminated) {
+            break; 
+        }
         
         if (RS->qlen() == 1 && current_thread) {
-		return NO_THREAD;
-	}
-        
-        lwp_yield();
+            return NO_THREAD;
+        }
 
-        // requires iterating through all threads, not just scheduled ones
-        // need a global thread list for this
+        lwp_yield();
     }
     
-    /*once terminated thread is found. but err no global list yet ?
-    if (terminated) {
-		printf("ok2"); 
-	   tid_t tid = terminated->tid;
-        
-        if (status) {
-            *status = terminated->status;
-        }
-        
-        if (terminated->stack != NULL) {
-            void *stack_base = (void *)((unsigned long)terminated->stack - terminated->stacksize + terminated->stacksize / 8);
-            munmap(stack_base, terminated->stacksize);
-        }
-        
-        free(terminated);
-        
-        return tid;
-    }*/    
-    return NO_THREAD;
+    // remove from global thread list
+    if (terminated->lib_two) {
+        terminated->lib_two->lib_one = terminated->lib_one;
+    }
+    if (terminated->lib_one) {
+        terminated->lib_one->lib_two = terminated->lib_two;
+    }
+    if (all_threads_head == terminated) {
+        all_threads_head = terminated->lib_one;
+    }
+    
+    tid_t tid = terminated->tid;
+    
+    if (status) {
+        *status = terminated->status;
+    }
+    
+    if (terminated->stack != NULL) {
+        void *stack_base = (void *)((unsigned long)terminated->stack - terminated->stacksize + terminated->stacksize / 8);
+        munmap(stack_base, terminated->stacksize);
+    }
+    
+    free(terminated);
+    
+    return tid;
 }
 
 tid_t lwp_gettid(void)
